@@ -1,4 +1,8 @@
-﻿using System.IO;
+﻿using System;
+using System.Diagnostics.Metrics;
+using System.IO;
+using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace konwerterPlikow
 {
@@ -37,7 +41,6 @@ namespace konwerterPlikow
             {
                 return InterpretH(line);
             }
-            
 
             return InterpretP(line);
         }
@@ -75,22 +78,56 @@ namespace konwerterPlikow
         {
             if(line.Contains("*"))
             {
-               
-                int start = line.IndexOf("**");
-
-                while (start > -1)
-                {
-                    int end = line.IndexOf("**", start + 2);
-
-                    line = line.Substring(0, start) + "<strong>" + line.Substring(start + 2, end - start - 2) + "</strong>" + line.Substring(end + 2);
-
-                    start = line.IndexOf("**", end);
-                }
+                int index = 0;
+                return ("<p>" + ParseContent(line, ref index) + "</p>");
             }
-
             return line;
         }
 
+        private static string ParseContent(string input, ref int index, string closing = null)
+        {
+            var result = new StringBuilder();
+
+            while (index < input.Length)
+            {
+                if (closing != null && input.Substring(index).StartsWith(closing))
+                {
+                    index += closing.Length;
+                    return result.ToString();
+                }
+
+                if (input.Substring(index).StartsWith("**"))
+                {
+                    index += 2;
+
+                    string content = ParseContent(input, ref index, "**");
+
+                    result.Append("<strong>");
+                    result.Append(content);
+                    result.Append("</strong>");
+
+                    continue;
+                }
+
+                if (input[index] == '*')
+                {
+                    index++;
+
+                    string content = ParseContent(input, ref index, "*");
+
+                    result.Append("<em>");
+                    result.Append(content);
+                    result.Append("</em>");
+
+                    continue;
+                }
+
+                result.Append(input[index]);
+                index++;
+            }
+
+            return result.ToString();
+        }
 
     }
 }
