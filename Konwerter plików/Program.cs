@@ -78,6 +78,18 @@ namespace konwerterPlikow
                     }
                     result.AppendLine(InterpretOrderedList(orderedListLines));
                 }
+                else if(line.Trim().StartsWith("-") || line.Trim().StartsWith("+") || line.Trim().StartsWith("*"))
+                {
+                    List<string> unorderedListLines = new List<string>();
+
+                    while (i < lines.Length)
+                    {
+                        unorderedListLines.Add(lines[i]);
+                        i++;
+                    }
+                    result.AppendLine(InterpretUnorderedList(unorderedListLines));
+
+                }
                 else
                 {
                     List<string> paragraphLines = new List<string>();
@@ -118,6 +130,43 @@ namespace konwerterPlikow
             return count;
         }
 
+        static string InterpretUnorderedList(List<string> lines)
+        {
+            StringBuilder result = new StringBuilder();
+            result.AppendLine("<ul>");
+
+            int i = 0;
+            while (i < lines.Count)
+            {
+                string line = lines[i];
+                int indentation = GetIndentation(line);
+
+                string content = Regex.Replace(line.Trim(), @"^[+\-*]", "");
+
+                result.Append("<li>" + InterpretBlocks(content));
+
+                i++;
+
+                List<string> nestedLines = new List<string>();
+                while (i < lines.Count &&
+                       GetIndentation(lines[i]) > indentation)
+                {
+                    nestedLines.Add(lines[i]);
+                    i++;
+                }
+
+                if (nestedLines.Count > 0)
+                {
+                    result.Append(InterpretUnorderedList(nestedLines));
+                }
+
+                result.AppendLine("</li>");
+            }
+
+            result.AppendLine("</ol>");
+            return result.ToString();
+        }
+
         static string InterpretOrderedList(List<string> lines)
         {
             StringBuilder result = new StringBuilder();
@@ -132,9 +181,7 @@ namespace konwerterPlikow
 
                 string content = Regex.Replace(line.Trim(), @"^\d+\.\s+", "");
 
-                result.Append("<li>");
-                int index = 0;
-                result.Append(InterpretBlocks(content));
+                result.Append("<li>" + InterpretBlocks(content));
 
                 i++;
 
@@ -193,7 +240,6 @@ namespace konwerterPlikow
             int index = 0;
             return ("<p>" + ParseContent(line, ref index) + "</p>");
         }
-
 
         private static string ParseContent(string input, ref int index, string closing = null)
         {
