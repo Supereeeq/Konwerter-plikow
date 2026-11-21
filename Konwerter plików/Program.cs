@@ -2,6 +2,7 @@
 using System.Diagnostics.Metrics;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace konwerterPlikow
@@ -41,18 +42,41 @@ namespace konwerterPlikow
 
             while (i < lines.Length)
             {
-                string line = lines[i].Trim();
+                string line = lines[i];
 
-                if (string.IsNullOrWhiteSpace(line))
+                if (string.IsNullOrWhiteSpace(line.Trim()))
                 {
                     i++;
                     continue;
                 }
 
-                if(line.StartsWith("#"))
+                if(line.Trim().StartsWith("#"))
                 {
-                    result.AppendLine(InterpretH(line));
+                    result.AppendLine(InterpretH(line.Trim()));
                     i++;
+                }
+                else if(line.Trim().StartsWith(">"))
+                {
+                    List<string> codeLines = new List<string>();
+
+                    while(i < lines.Length && lines[i].Trim().StartsWith(">"))
+                    {
+                        codeLines.Add(lines[i].Trim().Substring(1).Trim());
+                        i++;
+                    }
+                    result.AppendLine($"<blockquote>{InterpretBlocks(string.Join("\n", codeLines))}</blockquote>");
+                }
+                else if(Regex.IsMatch(line.Trim(), @"^\d+\.\s+"))
+                {
+                    List<string> orderedListLines = new List<string>();
+                    Regex regex = new(@"^\d+\.\s+");
+
+                    while (i < lines.Length && Regex.IsMatch(lines[i].Trim(), regex.ToString()))
+                    {
+                        orderedListLines.Add(lines[i]);
+                        i++;
+                    }
+                    result.AppendLine(InterpretOrderedList(orderedListLines));
                 }
                 else
                 {
@@ -75,6 +99,65 @@ namespace konwerterPlikow
         {
             return line.StartsWith("#") ||
                    line.StartsWith(">");
+        }
+
+        static int GetIndentation(string line)
+        {
+            int count = 0;
+
+            foreach (char c in line)
+            {
+                if (c == ' ')
+                    count++;
+                else if (c == '\t')
+                    count += 4;
+                else
+                    break;
+            }
+
+            return count;
+        }
+
+        static string InterpretOrderedList(List<string> lines)
+        {
+            StringBuilder result = new StringBuilder();
+            result.AppendLine("<ol>");
+
+            int i = 0;
+
+            while (i < lines.Count)
+            {
+                string line = lines[i];
+                int indentation = GetIndentation(line);
+
+                string content = Regex.Replace(line.Trim(), @"^\d+\.\s+", "");
+
+                result.Append("<li>");
+                int index = 0;
+                //result.Append(ParseContent(content, ref index));
+                result.Append(InterpretBlocks(content));
+
+                i++;
+
+                List<string> nestedLines = new List<string>();
+
+                while (i < lines.Count &&
+                       GetIndentation(lines[i]) > indentation)
+                {
+                    nestedLines.Add(lines[i]);
+                    i++;
+                }
+
+                if (nestedLines.Count > 0)
+                {
+                    result.Append(InterpretOrderedList(nestedLines));
+                }
+
+                result.AppendLine("</li>");
+            }
+
+            result.AppendLine("</ol>");
+            return result.ToString();
         }
 
         static string InterpretH(string line)
