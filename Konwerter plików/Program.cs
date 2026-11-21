@@ -23,26 +23,58 @@ namespace konwerterPlikow
                 
             }
 
-            string[] plikMd = File.ReadAllLines(localization);
-            foreach(string line in plikMd)
-            {
-                Console.WriteLine(InterpretLine(line));
-                //Console.WriteLine(line);
-            }
+            string mdFile = File.ReadAllText(localization);
+
+            string html = InterpretBlocks(mdFile);
+            
+            Console.WriteLine(html);
 
         }
 
-        static string InterpretLine(string line)
+        static string InterpretBlocks(string mdFile)
         {
-            if (line == null || line == "") return "";
+            string[] lines = mdFile.Split('\n');
 
-            line = line.Trim();
-            if (line[0] == '#')
+            StringBuilder result = new StringBuilder();
+
+            int i = 0;
+
+            while (i < lines.Length)
             {
-                return InterpretH(line);
+                string line = lines[i].Trim();
+
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    i++;
+                    continue;
+                }
+
+                if(line.StartsWith("#"))
+                {
+                    result.AppendLine(InterpretH(line));
+                    i++;
+                }
+                else
+                {
+                    List<string> paragraphLines = new List<string>();
+
+                    while (i < lines.Length && !IsBlockStart(lines[i]) && !string.IsNullOrWhiteSpace(lines[i]))
+                    {
+                        paragraphLines.Add(lines[i].Trim());
+                        i++;
+                    }
+
+                    result.AppendLine(InterpretP(string.Join("\n", paragraphLines)));
+                }
             }
 
-            return InterpretP(line);
+            return result.ToString();
+        }
+
+        static bool IsBlockStart(string line)
+        {
+            return line.StartsWith("#") ||
+                   line.StartsWith(">");
         }
 
         static string InterpretH(string line)
@@ -76,12 +108,8 @@ namespace konwerterPlikow
 
         static string InterpretP(string line)
         {
-            if(line.Contains("*"))
-            {
-                int index = 0;
-                return ("<p>" + ParseContent(line, ref index) + "</p>");
-            }
-            return line;
+            int index = 0;
+            return ("<p>" + ParseContent(line, ref index) + "</p>");
         }
 
         private static string ParseContent(string input, ref int index, string closing = null)
