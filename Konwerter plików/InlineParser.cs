@@ -35,6 +35,9 @@ namespace Konwerter_plików
                 if (TryInterpretImage(input, ref index, result))
                     continue;
 
+                if(TryInterpretLink(input, ref index, result))
+                    continue;
+
                 result.Append(System.Net.WebUtility.HtmlEncode(
                     input[index].ToString()
                 ));
@@ -43,6 +46,42 @@ namespace Konwerter_plików
             }
 
             return result.ToString();
+        }
+
+        private static bool TryInterpretLink(string input, ref int index, StringBuilder result)
+        {
+            if (!input.Substring(index).StartsWith("["))
+                return false;
+
+            int textStart = index + 1;
+            int textEnd = input.IndexOf("]", textStart);
+
+            string text = input.Substring(textStart, textEnd - textStart);
+
+            int linkStart = input.IndexOf("(", textEnd);
+            int linkEnd = input.IndexOf(")", linkStart);
+
+            string link = input.Substring(linkStart + 1, linkEnd - linkStart - 1);
+
+            result.Append($"<a href=\"{link}\"");
+
+            if (link.Contains("\""))
+            {
+                int titleStart = link.IndexOf("\"", textStart);
+                int titleEnd = link.IndexOf("\"", titleStart + 1);
+
+                string title = link.Substring(titleStart + 1, titleEnd - titleStart - 1);
+
+                result.Append($" title=\"{title}\"");
+
+                link = link.Substring(0, titleStart - 1);
+            }
+
+            result.Append($">{text}</a>");
+
+            index = linkEnd + 1;
+
+            return true;
         }
 
         private static bool TryInterpretCode(string input, ref int index, StringBuilder result)
