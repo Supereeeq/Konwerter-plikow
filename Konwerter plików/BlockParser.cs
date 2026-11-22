@@ -74,6 +74,17 @@ namespace Konwerter_plików
                     result.AppendLine(ListParser.InterpretUnorderedList(unorderedListLines));
 
                 }
+                else if(line.Contains('|') && IsTableSeperator(lines[i + 1]))
+                {
+                    List<string> tableListLines = new List<string>();
+
+                    while(i < lines.Length && lines[i].Contains('|'))
+                    {
+                        tableListLines.Add(lines[i]);
+                        i++;
+                    }
+                    result.AppendLine(TableParser.InterpretTable(tableListLines));
+                }
                 else
                 {
                     List<string> paragraphLines = new List<string>();
@@ -91,7 +102,22 @@ namespace Konwerter_plików
             return result.ToString();
         }
 
-        static bool IsBlockStart(string line)
+        private static bool IsTableSeperator(string line)
+        {
+            string[] cells = line.Trim().Trim('|').Split('|');
+
+            foreach (string cell in cells)
+            {
+                string value = cell.Trim();
+
+                if (!Regex.IsMatch(value, @"^:?-{3,}:?$"))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsBlockStart(string line)
         {
             return line.StartsWith("#") ||
                    line.StartsWith(">");
