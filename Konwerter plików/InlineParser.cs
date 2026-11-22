@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,6 +16,9 @@ namespace Konwerter_plików
             while (index < input.Length)
             {
                 if (TryInterpretEscape(input, ref index, result))
+                    continue;
+
+                if (TryInterpretCode(input, ref index, result))
                     continue;
 
                 int stars = CountStars(input, index);
@@ -39,6 +43,22 @@ namespace Konwerter_plików
             }
 
             return result.ToString();
+        }
+
+        private static bool TryInterpretCode(string input, ref int index, StringBuilder result)
+        {
+            if (!input.Substring(index).StartsWith("`"))
+                return false;
+
+            int end = input.IndexOf("`", index + 1);
+
+            string content = input.Substring(index + 1, end - index - 1);
+
+            result.Append($"<code>{content}</code>");
+
+            index = end + 1;
+
+            return true;
         }
 
         private static bool TryInterpretEscape(string input, ref int index, StringBuilder result)
