@@ -310,12 +310,53 @@ namespace konwerterPlikow
                     continue;
                 }
 
+                if (input.Substring(index).StartsWith("!["))
+                {
+                    string content = InterpretImage(input, ref index);
+                    result.Append(content);
+
+                    continue;
+                }
+
                 result.Append(System.Net.WebUtility.HtmlEncode(
                     input[index].ToString()
                 ));
 
                 index++;
             }
+
+            return result.ToString();
+        }
+
+        private static string InterpretImage(string input, ref int index)
+        {
+            var result = new StringBuilder();
+
+            result.Append("<img ");
+
+            int altEnd = input.IndexOf("]", index);
+
+            string alt = input.Substring(index + 2, altEnd - (index + 2));
+
+            if (alt.Length > 0)
+            {
+                result.Append($"alt='{alt}' ");
+                index += alt.Length + 2;
+            }
+
+            int srcStart = input.IndexOf("(", altEnd) + 1;
+            int srcEnd = input.IndexOf(")", srcStart);
+
+            string src = input.Substring(srcStart, srcEnd - srcStart);
+
+            if (src.Length > 0)
+            {
+                result.Append($"src='{src}' ");
+                index += src.Length + 3;
+            }
+
+            result.AppendLine("/>");
+
 
             return result.ToString();
         }
