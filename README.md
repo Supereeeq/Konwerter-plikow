@@ -11,8 +11,6 @@ Supported right now are:
 - code elements
 - horizontal rules
 - links
-
-In the future, supported will be:
 - tables
 
 In the future, it will probably also be able to convert files from the .html into .md
