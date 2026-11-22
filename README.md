@@ -8,11 +8,11 @@ Supported right now are:
 - italic and strong paragraphs
 - blockquotes
 - images
-
-In the future, supported will be:
 - code elements
-- tables
 - horizontal rules
 - links
+
+In the future, supported will be:
+- tables
 
 In the future, it will probably also be able to convert files from the .html into .md
