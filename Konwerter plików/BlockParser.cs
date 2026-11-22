@@ -29,8 +29,15 @@ namespace Konwerter_plików
 
                 if (line.Trim().StartsWith("#"))
                 {
+                    result.AppendLine("");
                     result.AppendLine(InterpretH(line.Trim()));
                     i++;
+                }
+                else if (IsHorizontalRule(line))
+                {
+                    result.AppendLine(InterpretHorizontalRule());
+                    i++;
+                    continue;
                 }
                 else if (line.Trim().StartsWith(">"))
                 {
@@ -88,6 +95,18 @@ namespace Konwerter_plików
         {
             return line.StartsWith("#") ||
                    line.StartsWith(">");
+        }
+
+        private static bool IsHorizontalRule(string line)
+        {
+            string trimmed = line.Trim();
+
+            return Regex.IsMatch(trimmed, @"^([-*_])(?:\s*\1){2,}$");
+        }
+
+        private static string InterpretHorizontalRule()
+        {
+            return "<hr />";
         }
 
         static string InterpretH(string line)
