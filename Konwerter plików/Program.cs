@@ -266,15 +266,8 @@ namespace konwerterPlikow
 
             while (index < input.Length)
             {
-                if (input[index] == '\\' && index + 1 < input.Length)
-                {
-                    result.Append(System.Net.WebUtility.HtmlEncode(
-                        input[index + 1].ToString()
-                    ));
-
-                    index += 2;
+                if (TryInterpretEscape(input, ref index, result))
                     continue;
-                }
 
                 int stars = CountStars(input, index);
 
@@ -284,39 +277,11 @@ namespace konwerterPlikow
                     return result.ToString();
                 }
 
-                if (stars >= 2 && HasClosingDelimiter(input, index + 2, "**"))
-                {
-                    index += 2;
-
-                    string content = ParseContent(input, ref index, "**");
-
-                    result.Append("<strong>");
-                    result.Append(content);
-                    result.Append("</strong>");
-
+                if (TryInterpretEmphasis(input, ref index, result))
                     continue;
-                }
 
-                if (stars == 1 && HasClosingDelimiter(input, index + 1, "*"))
-                {
-                    index++;
-
-                    string content = ParseContent(input, ref index, "*");
-
-                    result.Append("<em>");
-                    result.Append(content);
-                    result.Append("</em>");
-
+                if (TryInterpretImage(input, ref index, result))
                     continue;
-                }
-
-                if (input.Substring(index).StartsWith("!["))
-                {
-                    string content = InterpretImage(input, ref index);
-                    result.Append(content);
-
-                    continue;
-                }
 
                 result.Append(System.Net.WebUtility.HtmlEncode(
                     input[index].ToString()
@@ -328,37 +293,92 @@ namespace konwerterPlikow
             return result.ToString();
         }
 
+        private static bool TryInterpretEscape(string input, ref int index, StringBuilder result)
+        {
+            if (input[index] != '\\' || index + 1 >= input.Length)
+                return false;
+
+            result.Append(System.Net.WebUtility.HtmlEncode(
+                input[index + 1].ToString()
+            ));
+
+            index += 2;
+
+            return true;
+        }
+
+        private static bool TryInterpretEmphasis(string input, ref int index, StringBuilder result)
+        {
+            int stars = CountStars(input, index);
+
+            if (stars >= 2 && HasClosingDelimiter(input, index + 2, "**"))
+            {
+                index += 2;
+
+                string content = ParseContent(input, ref index, "**");
+
+                result.Append("<strong>");
+                result.Append(content);
+                result.Append("</strong>");
+
+                return true;
+            }
+
+            if (stars == 1 && HasClosingDelimiter(input, index + 1, "*"))
+            {
+                index++;
+
+                string content = ParseContent(input, ref index, "*");
+
+                result.Append("<em>");
+                result.Append(content);
+                result.Append("</em>");
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryInterpretImage(string input, ref int index, StringBuilder result)
+        {
+            if (!input.Substring(index).StartsWith("!["))
+                return false;
+
+            string image = InterpretImage(input, ref index);
+
+            result.Append(image);
+
+            return true;
+        }
+
         private static string InterpretImage(string input, ref int index)
         {
-            var result = new StringBuilder();
+            int altStart = index + 2;
+            int altEnd = input.IndexOf("]", altStart);
 
-            result.Append("<img ");
-
-            int altEnd = input.IndexOf("]", index);
-
-            string alt = input.Substring(index + 2, altEnd - (index + 2));
-
-            if (alt.Length > 0)
-            {
-                result.Append($"alt='{alt}' ");
-                index += alt.Length + 2;
-            }
+            if (altEnd == -1)
+                return null;
 
             int srcStart = input.IndexOf("(", altEnd) + 1;
+
+            if (srcStart == 0)
+                return null;
+
             int srcEnd = input.IndexOf(")", srcStart);
 
+            if (srcEnd == -1)
+                return null;
+
+            string alt = input.Substring(altStart, altEnd - altStart);
             string src = input.Substring(srcStart, srcEnd - srcStart);
 
-            if (src.Length > 0)
-            {
-                result.Append($"src='{src}' ");
-                index += src.Length + 3;
-            }
+            index = srcEnd + 1;
 
-            result.AppendLine("/>");
+            alt = System.Net.WebUtility.HtmlEncode(alt);
+            src = System.Net.WebUtility.HtmlEncode(src);
 
-
-            return result.ToString();
+            return $"<img alt=\"{alt}\" src=\"{src}\" />";
         }
 
         private static int CountStars(string input, int index)
