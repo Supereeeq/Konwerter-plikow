@@ -100,7 +100,7 @@ namespace konwerterPlikow
                         i++;
                     }
 
-                    result.AppendLine(InterpretP(string.Join("\n", paragraphLines)));
+                    result.Append(InterpretP(string.Join("\n", paragraphLines)));
                 }
             }
 
@@ -111,6 +111,11 @@ namespace konwerterPlikow
         {
             return line.StartsWith("#") ||
                    line.StartsWith(">");
+        }
+
+        static bool IsOrderedListItem(string line)
+        {
+            return Regex.IsMatch(line.Trim(), @"^\d+\.\s+");
         }
 
         static int GetIndentation(string line)
@@ -157,13 +162,20 @@ namespace konwerterPlikow
 
                 if (nestedLines.Count > 0)
                 {
-                    result.Append(InterpretUnorderedList(nestedLines));
+                    if(IsOrderedListItem(nestedLines[0]))
+                    {
+                        result.Append(InterpretOrderedList(nestedLines));
+                    }
+                    else
+                    {
+                        result.Append(InterpretUnorderedList(nestedLines));
+                    }
                 }
 
                 result.AppendLine("</li>");
             }
 
-            result.AppendLine("</ol>");
+            result.AppendLine("</ul>");
             return result.ToString();
         }
 
@@ -196,7 +208,14 @@ namespace konwerterPlikow
 
                 if (nestedLines.Count > 0)
                 {
-                    result.Append(InterpretOrderedList(nestedLines));
+                    if (IsOrderedListItem(nestedLines[0]))
+                    {
+                        result.Append(InterpretOrderedList(nestedLines));
+                    }
+                    else
+                    {
+                        result.Append(InterpretUnorderedList(nestedLines));
+                    }
                 }
 
                 result.AppendLine("</li>");
